@@ -1,0 +1,55 @@
+# Alias vocabulary used by entity_extractor.py and name_normalizer.py.
+# Keep small and extensible -- this is a demo vocabulary, not a full
+# ontology/knowledge base.
+
+well:
+  - "well"
+  - "wellbore"
+  - "borehole"
+
+licence:
+  - "licence"
+  - "license"
+  - "production licence"
+  - "PL"
+
+formation:
+  suffixes: ["Formation", "Fm.", "Fm"]
+  # Known formation names -> canonical form. Extend as needed; unknown
+  # formation names are still extracted via the "<Name> Fm/Formation" regex,
+  # this list is only used to normalize casing/known aliases.
+  # Each list includes the bare formation name itself (e.g. "Heimdal") so it
+  # is also recognized in tabular "formation tops" listings that omit the
+  # Fm/Formation suffix entirely.
+  known:
+    Heimdal: ["Heimdal", "Heimdal Fm", "Heimdal Formation", "HEIMDAL FM"]
+    Sleipner: ["Sleipner", "Sleipner Fm", "Sleipner Formation"]
+    Hugin: ["Hugin", "Hugin Fm", "Hugin Formation"]
+    Skagerrak: ["Skagerrak", "Skagerrak Fm", "Skagerrak Formation"]
+    Draupne: ["Draupne", "Draupne Fm", "Draupne Formation"]
+
+depth:
+  MD: ["MD", "measured depth"]
+  TVD: ["TVD", "true vertical depth"]
+  TVDSS: ["TVDSS", "TVD SS", "true vertical depth subsea"]
+  TD: ["TD", "total depth"]
+  top_depth: ["top depth", "top"]
+  base_depth: ["base depth", "base"]
+
+company:
+  # canonical name -> known aliases (including historical names)
+  Equinor: ["Equinor", "Equinor ASA", "Statoil"]
+  Shell: ["Shell", "Shell plc", "Royal Dutch Shell"]
+  operator_keywords: ["operator", "company"]
+
+field:
+  # Matches the demo stand-in reference data seeded in
+  # migrations/001_init_reference_schema.sql.
+  Volve: ["Volve", "Volve field"]
+
+log_curve:
+  GR: ["GR", "gamma ray"]
+  RHOB: ["RHOB", "density", "bulk density"]
+  NPHI: ["NPHI", "neutron porosity"]
+  DT: ["DT", "sonic"]
+  RES: ["RES", "RT", "resistivity"]

@@ -1,0 +1,13 @@
+# Frontend build context exclusions.
+
+.env
+.env.*
+!.env.example
+
+node_modules/
+dist/
+dist-ssr/
+
+.git/
+.DS_Store
+*.log

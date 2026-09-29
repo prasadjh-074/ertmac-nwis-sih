@@ -1,0 +1,24 @@
+# Fixed relation vocabulary. Deliberately small -- no autonomous ontology
+# discovery, no open-ended relation types.
+relation_types:
+  - name: HAS_FORMATION
+    subject_types: [WELL, WELLBORE]
+    object_types: [FORMATION]
+  - name: HAS_LICENCE
+    subject_types: [WELL, FIELD]
+    object_types: [LICENCE]
+  - name: OPERATED_BY
+    subject_types: [WELL, LICENCE, FIELD]
+    object_types: [COMPANY]
+  - name: LOCATED_IN
+    subject_types: [WELL]
+    object_types: [FIELD]
+  - name: HAS_TOP_DEPTH
+    subject_types: [FORMATION]
+    object_types: [DEPTH]
+  - name: HAS_BASE_DEPTH
+    subject_types: [FORMATION]
+    object_types: [DEPTH]
+  - name: HAS_PRODUCTION
+    subject_types: [WELL, FIELD]
+    object_types: [PRODUCTION]

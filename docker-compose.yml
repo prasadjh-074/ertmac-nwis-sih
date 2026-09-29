@@ -1,0 +1,112 @@
+# eRTMAC-NWIS containerized deployment: frontend -> backend -> postgres.
+#
+# Architecture:
+#   Browser -> frontend (nginx:80, host 3000) -> backend (uvicorn:8000, host 8000)
+#             -> postgres (pgvector, container-internal 5432, host 55432)
+#
+# Inter-container traffic uses the compose service names (backend, postgres)
+# on the "nwis" bridge network below — never "localhost", which inside a
+# container only ever refers to that container itself. Only the ports a
+# person or an external tool actually needs are published to the host.
+#
+# See docs/docker.md for prerequisites, commands, and what each env var does.
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-geo_intelligence}
+      POSTGRES_USER: ${POSTGRES_USER:-nwis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+    volumes:
+      # Named volume: survives `docker compose down`; only removed by an
+      # explicit `docker compose down -v`. Never deleted automatically.
+      - pgdata:/var/lib/postgresql/data
+      # The project's existing, UNMODIFIED db/*.sql migrations, mounted
+      # read-only — 00_init.sh (below) applies them via Postgres's own
+      # docker-entrypoint-initdb.d convention, which only ever runs once,
+      # against a genuinely empty data directory.
+      - ./db:/docker-entrypoint-initdb.d/db-migrations:ro
+      - ./docker/initdb/00_init.sh:/docker-entrypoint-initdb.d/00_init.sh:ro
+    ports:
+      # Optional host access (e.g. psql, pg_dump/restore for seeding real
+      # data — see docs/docker.md). Not used by frontend<->backend traffic
+      # and safe to remove if you don't need host-side DB access.
+      - "55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - nwis
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    environment:
+      # CRITICAL: postgres:5432 (the compose service name + its own
+      # container-internal port), never localhost:5433 (that's only ever
+      # correct for a Postgres running directly on the host machine).
+      #
+      # One set of DB_* vars, not two: api/config.py's APISettings reads
+      # API_DB_HOST and falls back to DB_HOST (same for PORT/NAME/USER/
+      # PASSWORD), and db_config.py (used by nearby/, events/, risk/,
+      # retrieval/, document_retrieval/) reads DB_HOST directly — so
+      # setting DB_* alone already reaches both call sites correctly.
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-geo_intelligence}
+      DB_USER: ${POSTGRES_USER:-nwis}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+      # Optional — /query returns 503 and the frontend falls back to
+      # /query/structured automatically when this is unset (see
+      # docs/backend_api.md). Never baked into the image; read only from
+      # the environment at container start.
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      API_LOG_FORMAT: ${API_LOG_FORMAT:-json}
+      API_CORS_ORIGINS: ${API_CORS_ORIGINS:-}
+    volumes:
+      # Optional, read-only: only risk/evidence_sources.py's caliper
+      # lookup reads from data/ at runtime, and it already degrades
+      # gracefully (falls back to fewer evidence signals) if this path is
+      # absent — see docs/docker.md "Dataset mounting". The 2.1GB
+      # directory itself is never copied into the image (.dockerignore).
+      - ./data:/app/data:ro
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    networks:
+      - nwis
+
+  frontend:
+    build:
+      # Scoped to frontend/ (not the repo root) so its own
+      # frontend/.dockerignore applies cleanly and this build never
+      # needs the root .dockerignore's `frontend/` exclusion lifted.
+      context: ./frontend
+      dockerfile: ../Dockerfile.frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - nwis
+
+networks:
+  nwis:
+    driver: bridge
+
+volumes:
+  pgdata:

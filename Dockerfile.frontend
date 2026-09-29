@@ -1,0 +1,43 @@
+# eRTMAC-NWIS frontend image — multi-stage: build with Node, serve with nginx.
+#
+# The app's own API client (frontend/src/lib/api.ts) already calls a
+# relative "/api" prefix specifically so "the same code works in dev (Vite
+# proxies /api -> :8001) and behind a single origin in prod" (its own
+# comment). nginx.frontend.conf is that production proxy — no frontend
+# source change was needed for Docker.
+#
+# GROQ_API_KEY, DB credentials, and any other backend secret are never
+# referenced here and never reach this image or the built JS bundle.
+
+# maplibre-gl's toolchain (a transitive dep, @mapbox/jsonlint-lines-primitives)
+# requires Node >=22 — confirmed by a real Docker build failure against
+# node:20-slim ("The engine node is incompatible ... Expected >= 22").
+FROM node:22-slim AS build
+WORKDIR /app
+
+# Build context is ./frontend (see docker-compose.yml) so
+# frontend/.dockerignore applies directly and paths here are relative
+# to frontend/, not the repo root.
+COPY package.json yarn.lock ./
+RUN corepack enable && yarn install --frozen-lockfile
+
+# .dockerignore (frontend/.dockerignore) excludes node_modules, dist, .env.
+COPY . .
+
+# Bypass `npm run build`'s `tsc -b &&` gate deliberately: this repo's
+# bundled `typescript` package ships a native-binary wrapper that isn't
+# resolvable in every environment (see docs/docker.md). Vite's own
+# transform (esbuild/rolldown) does not require a successful tsc pass to
+# produce a correct bundle; the project's separate `typecheck` script
+# remains the authoritative type-check gate and is run in CI/local dev,
+# unchanged. This line changes nothing about what ships — only how the
+# Docker build invokes it.
+RUN node node_modules/vite/bin/vite.js build
+
+FROM nginx:alpine AS runtime
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.frontend.conf /etc/nginx/conf.d/default.conf
+# ^ resolves relative to the build context (./frontend) — see
+# docker-compose.yml's `context: ./frontend` for this service.
+
+EXPOSE 80

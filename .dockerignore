@@ -1,0 +1,25 @@
+# Backend build context exclusions — keeps the image free of secrets,
+# the 2.1GB dataset directory, and anything not needed to run the API.
+
+.env
+.env.*
+!.env.example
+
+# Real datasets — never baked into an image; mounted at runtime if needed.
+data/
+
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+.git/
+.gitignore
+
+frontend/
+node_modules/
+
+# Local scratch / editor artifacts
+.DS_Store
+*.log

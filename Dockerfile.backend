@@ -1,0 +1,38 @@
+# eRTMAC-NWIS FastAPI backend image.
+#
+# Does NOT bundle the ~2.1GB data/ directory (see .dockerignore) — the one
+# runtime code path that reads from it (risk/evidence_sources.py's caliper
+# lookup) already degrades gracefully when the file is absent, and
+# docker-compose.yml documents an optional read-only host mount for it.
+#
+# Does NOT bundle .env or any secret — GROQ_API_KEY and DB credentials are
+# injected at container start via docker-compose's `environment:`/`env_file:`,
+# never COPYed into the image.
+FROM python:3.13-slim AS backend
+
+# tesseract-ocr: native binary required by pytesseract (ingestion OCR path).
+# curl: used only by the container healthcheck in docker-compose.yml.
+# Everything else in requirements.txt ships prebuilt wheels for this base.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tesseract-ocr curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Layer-cache pip installs separately from source so editing app code
+# doesn't invalidate the (slow, torch-pulling) dependency install layer.
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Application source only — .dockerignore excludes data/, venv/, frontend/,
+# node_modules, .env, __pycache__, .git, tests/ artifacts, etc.
+COPY . .
+
+# Least-privilege: run as a non-root user inside the container.
+RUN useradd --create-home --shell /usr/sbin/nologin nwis \
+    && chown -R nwis:nwis /app
+USER nwis
+
+EXPOSE 8000
+
+CMD ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000"]

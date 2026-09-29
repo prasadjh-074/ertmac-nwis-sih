@@ -1,0 +1,26 @@
+# Unit conversion table and accepted date formats used by
+# normalization/unit_normalizer.py.
+length:
+  canonical: meters
+  conversions:
+    m: 1.0
+    meter: 1.0
+    meters: 1.0
+    km: 1000.0
+    kilometer: 1000.0
+    kilometers: 1000.0
+    cm: 0.01
+    centimeter: 0.01
+    centimeters: 0.01
+    ft: 0.3048
+    feet: 0.3048
+    foot: 0.3048
+
+date_formats:
+  - "%Y-%m-%d"
+  - "%d.%m.%Y"
+  - "%d/%m/%Y"
+  - "%d-%m-%Y"
+  - "%d %B %Y"
+  - "%B %d, %Y"
+  - "%B %d %Y"

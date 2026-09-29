@@ -1,0 +1,40 @@
+.env
+__pycache__/
+*.pyc
+venv/
+.pytest_cache/
+*.egg-info/
+
+# Node
+node_modules/
+
+# Env / secrets
+.env.local
+*.pem
+*.key
+
+# Data (large, kept out of git)
+/data/
+/normalized/
+/windows/
+*.parquet
+*.las
+*.db
+*.sqlite
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# IDE / tools
+.vscode/
+.idea/
+.claude/
+
+# Junk
+Untitled
+
+# Junk folder
+sih/

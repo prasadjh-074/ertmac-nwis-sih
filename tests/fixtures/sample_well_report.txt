@@ -1,0 +1,10 @@
+WELL: 30/6-1
+LICENCE: PL 123
+OPERATOR: Equinor
+SPUD DATE: 12.03.2001
+TOTAL DEPTH: 2890 m
+
+FORMATION TOPS:
+
+Heimdal    2450 m    2520 m
+Sleipner   2520 m    2610 m

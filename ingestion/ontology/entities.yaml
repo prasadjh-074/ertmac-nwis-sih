@@ -1,0 +1,21 @@
+# Canonical entity ontology for the ingestion pipeline (demo/MVP scope).
+# Kept intentionally small and flat -- add new types here as needed rather
+# than introducing a taxonomy/hierarchy.
+entity_types:
+  - WELL
+  - WELLBORE
+  - FIELD
+  - DISCOVERY
+  - LICENCE
+  - COMPANY
+  - FORMATION
+  - LITHOLOGY
+  - RESERVOIR
+  - DEPTH
+  - DEPTH_INTERVAL
+  - DATE
+  - LOG_CURVE
+  - PRODUCTION
+  - PRESSURE
+  - DRILLING_EVENT
+  - COMPLETION
