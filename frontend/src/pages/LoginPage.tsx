@@ -1,43 +1,112 @@
-import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowRight, CheckCircle2, Database, Gauge, LockKeyhole, ShieldCheck, Waves } from "@/lib/lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { StatusBadge } from "@/components/StatusBadge";
-import { DEMO_AUTH_LABEL } from "@/auth/authService";
+import { useState } from "react";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { ArrowRight, HardHat, ServerCog } from "lucide-react";
 import { useAuth } from "@/auth/AuthContext";
-import type { Role } from "@/auth/permissions";
+import { DEMO_AUTH_LABEL } from "@/auth/authService";
+import { homePathFor, type Role } from "@/auth/permissions";
+import { useHealth } from "@/hooks/useHealth";
+import { StatusDot } from "@/components/nwis/Tags";
+
+const CAPABILITIES = [
+  ["01", "Offset wells", "Haversine radius search and log-embedding similarity"],
+  ["02", "Drilling history", "Events extracted from SODIR narratives, with source snippet"],
+  ["03", "Risk evidence", "Rule-based scores with methodology and limitations"],
+  ["04", "Investigation", "Natural-language questions answered from evidence, not generated"],
+];
+
+function SystemLine() {
+  const h = useHealth(false);
+  const state = h.isLoading ? "unknown" : h.isError ? "crit" : "ok";
+  return (
+    <div data-testid="login-system-status" className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em] text-faint">
+      <StatusDot state={state} />
+      {h.isLoading ? "Contacting API… a sleeping backend can take ~30 s" : h.isError ? "API unreachable" : `API v${h.data?.data.version} · database ${h.data?.data.database}`}
+    </div>
+  );
+}
+
+function RoleButton({ role, icon: Icon, title, desc, onPick }: { role: Role; icon: typeof HardHat; title: string; desc: string; onPick: (r: Role) => void }) {
+  return (
+    <button type="button" data-testid={`demo-login-${role}`} onClick={() => onPick(role)} className="group flex w-full items-center gap-3 border border-line bg-panel2 px-3 py-3 text-left transition-colors hover:border-signal/60">
+      <Icon className="size-5 text-faint transition-colors group-hover:text-signal" strokeWidth={1.5} />
+      <div className="flex-1">
+        <div className="text-[13px] font-medium">{title}</div>
+        <div className="font-mono text-[10px] text-faint">{role} · {desc}</div>
+      </div>
+      <ArrowRight className="size-4 text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-signal" />
+    </button>
+  );
+}
 
 export default function LoginPage() {
-  const { loginAs } = useAuth();
+  const { user, loginAs } = useAuth();
   const navigate = useNavigate();
-  const [role, setRole] = useState<Role>("DRILLING_ENGINEER");
-  const [employeeId, setEmployeeId] = useState("");
+  const location = useLocation();
+  const [notice, setNotice] = useState(false);
+  if (user) return <Navigate to={homePathFor(user.role)} replace />;
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    loginAs(role);
-    navigate(role === "DRILLING_ENGINEER" ? "/engineer" : "/admin");
+  const from = (location.state as { from?: string } | null)?.from;
+  const pick = (r: Role) => {
+    loginAs(r);
+    navigate(from && from.startsWith(homePathFor(r)) ? from : homePathFor(r), { replace: true });
   };
 
   return (
-    <div className="grid min-h-svh bg-slate-100 lg:grid-cols-[minmax(360px,0.82fr)_1.18fr]" data-testid="login-page">
-      <section className="relative hidden overflow-hidden bg-[#0f172a] p-10 text-white lg:flex lg:flex-col lg:justify-between" data-testid="login-brand-panel">
-        <div className="absolute -right-24 top-20 size-80 rounded-full border border-blue-400/10" /><div className="absolute -right-12 top-32 size-56 rounded-full border border-blue-400/10" /><div className="absolute bottom-24 left-10 h-px w-[420px] bg-gradient-to-r from-blue-400/40 to-transparent" />
-        <div className="relative"><div className="mb-16 flex items-center gap-3"><div className="flex size-11 items-center justify-center border border-blue-300/30 bg-blue-400/10 text-blue-200"><Gauge size={22} /></div><div><p className="text-lg font-bold tracking-[0.18em]">eRTMAC-NWIS</p><p className="text-xs text-slate-400">Nearby Wells Intelligence System</p></div></div><p className="mb-3 text-[11px] font-bold uppercase tracking-[0.26em] text-blue-300">Drilling intelligence platform</p><h1 className="max-w-md text-4xl font-bold leading-tight tracking-tight">Evidence before the next drilling decision.</h1><p className="mt-5 max-w-md text-sm leading-7 text-slate-400">Connect wells, historical events, geological context and explainable risk in one operational workspace.</p></div>
-        <div className="relative grid grid-cols-3 gap-3 border-t border-slate-700 pt-5 text-xs"><div><Waves size={16} className="mb-2 text-blue-300" /><p className="font-semibold">Well context</p><p className="mt-1 text-slate-500">Traceable data</p></div><div><ShieldCheck size={16} className="mb-2 text-emerald-300" /><p className="font-semibold">Role aware</p><p className="mt-1 text-slate-500">Scoped access</p></div><div><Database size={16} className="mb-2 text-amber-300" /><p className="font-semibold">Provenance</p><p className="mt-1 text-slate-500">Source first</p></div></div>
+    <div data-testid="login-page" className="grid min-h-full grid-cols-1 bg-bg lg:grid-cols-[minmax(0,1.35fr)_minmax(420px,1fr)]">
+      <section className="gridlines relative hidden flex-col justify-between border-r border-line p-12 lg:flex">
+        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-faint">SIH 2026 · PS 2612 · Oil India Limited</div>
+        <div className="rise">
+          <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-signal">Drilling intelligence platform</div>
+          <h1 className="font-wide mt-3 text-[112px] font-extrabold leading-[0.85] tracking-[-0.01em] text-ink">NWIS</h1>
+          <p className="font-semicond mt-4 text-[22px] font-light text-dim">Nearby Wells Intelligence System</p>
+          <div className="mt-12 grid max-w-2xl grid-cols-2 gap-px border border-line bg-line">
+            {CAPABILITIES.map(([n, t, d]) => (
+              <div key={n} className="bg-bg/95 p-4">
+                <div className="font-mono text-[10px] text-signal">{n}</div>
+                <div className="mt-1 text-[13px] font-medium">{t}</div>
+                <div className="mt-0.5 text-[12px] leading-relaxed text-faint">{d}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <SystemLine />
       </section>
-      <section className="flex items-center justify-center p-5 sm:p-10" data-testid="login-form-panel">
-        <div className="w-full max-w-md">
-          <div className="mb-8 lg:hidden"><p className="text-lg font-bold tracking-[0.18em] text-[#0f172a]">eRTMAC-NWIS</p><p className="text-xs text-slate-500">Nearby Wells Intelligence System</p></div>
-          <div className="mb-8"><StatusBadge tone="amber">{DEMO_AUTH_LABEL}</StatusBadge><h2 className="mt-4 text-3xl font-bold tracking-tight text-slate-900">Secure workspace access</h2><p className="mt-2 text-sm leading-relaxed text-slate-500">Choose a development role to preview the permission-aware workstation. No production credentials are processed here.</p></div>
-          <form onSubmit={submit} className="space-y-5" data-testid="login-form">
-            <div><label htmlFor="employee-id" className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-600">Employee ID / username</label><Input id="employee-id" value={employeeId} onChange={(event) => setEmployeeId(event.target.value)} placeholder="engineer@organization" className="h-11 border-slate-300 bg-white" data-testid="login-employee-input" /></div>
-            <div><label htmlFor="password" className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-600">Password</label><div className="relative"><LockKeyhole size={16} className="absolute left-3 top-3.5 text-slate-400" /><Input id="password" type="password" placeholder="Demo access does not validate credentials" className="h-11 border-slate-300 bg-white pl-9" data-testid="login-password-input" /></div></div>
-            <div><p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-600">Preview role</p><div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => setRole("DRILLING_ENGINEER")} className={`border p-3 text-left transition-colors duration-150 ${role === "DRILLING_ENGINEER" ? "border-blue-500 bg-blue-50 ring-2 ring-blue-100" : "border-slate-200 bg-white hover:border-blue-300"}`} data-testid="login-engineer-role-button"><span className="flex items-center justify-between text-sm font-semibold text-slate-800">Drilling Engineer {role === "DRILLING_ENGINEER" && <CheckCircle2 size={16} className="text-blue-600" />}</span><span className="mt-1 block text-xs text-slate-500">Operational intelligence</span></button><button type="button" onClick={() => setRole("SYSTEM_ADMIN")} className={`border p-3 text-left transition-colors duration-150 ${role === "SYSTEM_ADMIN" ? "border-blue-500 bg-blue-50 ring-2 ring-blue-100" : "border-slate-200 bg-white hover:border-blue-300"}`} data-testid="login-admin-role-button"><span className="flex items-center justify-between text-sm font-semibold text-slate-800">System Administrator {role === "SYSTEM_ADMIN" && <CheckCircle2 size={16} className="text-blue-600" />}</span><span className="mt-1 block text-xs text-slate-500">Platform controls only</span></button></div></div>
-            <Button type="submit" className="h-11 w-full bg-blue-600 font-semibold shadow-sm hover:bg-blue-700" data-testid="login-submit-button">Enter {role === "DRILLING_ENGINEER" ? "engineer" : "admin"} workspace <ArrowRight size={16} /></Button>
+
+      <section className="flex items-center justify-center p-8">
+        <div className="w-full max-w-[380px]">
+          <div className="lg:hidden">
+            <h1 className="font-wide text-[48px] font-extrabold leading-none">NWIS</h1>
+            <p className="mt-1 text-dim">Nearby Wells Intelligence System</p>
+          </div>
+          <div className="label mt-8 lg:mt-0">Secure organizational access</div>
+          <form className="mt-4 space-y-3" onSubmit={(e) => { e.preventDefault(); setNotice(true); }}>
+            <label className="block">
+              <span className="label">Employee ID / Username</span>
+              <input data-testid="login-username-input" autoComplete="username" placeholder="engineer@oilindia" className="mt-1 h-9 w-full border border-line bg-panel2 px-3 font-mono text-[13px] outline-none placeholder:text-faint focus:border-signal/60" />
+            </label>
+            <label className="block">
+              <span className="label">Password</span>
+              <input data-testid="login-password-input" type="password" autoComplete="current-password" placeholder="••••••••••" className="mt-1 h-9 w-full border border-line bg-panel2 px-3 font-mono text-[13px] outline-none placeholder:text-faint focus:border-signal/60" />
+            </label>
+            <button type="submit" data-testid="login-submit-btn" className="h-9 w-full bg-signal font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-[#061014] transition-colors hover:bg-[#5ad6e5]">Sign in</button>
+            {notice && (
+              <p data-testid="login-sso-notice" className="border border-warn/40 bg-warn-deep/50 px-3 py-2 text-[12px] text-warn">
+                Credential sign-in requires organizational SSO, which is not connected yet. Use demo access below.
+              </p>
+            )}
           </form>
-          <div className="mt-8 flex items-center gap-2 border-t border-slate-200 pt-4 text-xs text-slate-500"><LockKeyhole size={14} className="text-emerald-600" /> Replace this demo boundary with organizational SSO/JWT before production use.</div>
+
+          <div className="mt-8 border border-dashed border-warn/40 p-3">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-warn">{DEMO_AUTH_LABEL}</span>
+              <span className="font-mono text-[9px] text-faint">not production security</span>
+            </div>
+            <div className="mt-3 space-y-1.5">
+              <RoleButton role="DRILLING_ENGINEER" icon={HardHat} title="Drilling Engineer" desc="operational workspace" onPick={pick} />
+              <RoleButton role="SYSTEM_ADMIN" icon={ServerCog} title="System Administrator" desc="platform administration" onPick={pick} />
+            </div>
+          </div>
+          <div className="mt-6 lg:hidden"><SystemLine /></div>
         </div>
       </section>
     </div>

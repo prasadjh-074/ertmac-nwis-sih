@@ -1,58 +1,47 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import { clearDemoRole, persistDemoRole, readDemoRole } from "./authService";
-import type { Role } from "./permissions";
-
-export interface AuthUser {
-  id: string;
-  name: string;
-  initials: string;
-  role: Role;
-}
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { queryClient } from "@/lib/queryClient";
+import { logSessionEvent } from "@/lib/sessionLog";
+import { demoSignIn, restoreSession, signOut, type AuthUser } from "./authService";
+import { hasPermission, type Permission, type Role } from "./permissions";
 
 interface AuthContextValue {
   user: AuthUser | null;
   loginAs: (role: Role) => void;
-  switchRole: (role: Role) => void;
   logout: () => void;
+  can: (permission: Permission) => boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const userForRole = (role: Role): AuthUser =>
-  role === "DRILLING_ENGINEER"
-    ? { id: "demo-engineer", name: "Demo Engineer", initials: "DE", role }
-    : { id: "demo-admin", name: "Demo Administrator", initials: "DA", role };
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(() => {
-    const role = readDemoRole();
-    return role ? userForRole(role) : null;
-  });
+  const [user, setUser] = useState<AuthUser | null>(() => restoreSession());
+
+  const loginAs = useCallback((role: Role) => {
+    queryClient.clear();
+    const u = demoSignIn(role);
+    logSessionEvent(u.employeeId, "Signed in (demo)", role, "Allowed");
+    setUser(u);
+  }, []);
+
+  const logout = useCallback(() => {
+    setUser((u) => {
+      if (u) logSessionEvent(u.employeeId, "Signed out", u.role, "Allowed");
+      return null;
+    });
+    signOut();
+    queryClient.clear();
+  }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({
-      user,
-      loginAs: (role) => {
-        persistDemoRole(role);
-        setUser(userForRole(role));
-      },
-      switchRole: (role) => {
-        persistDemoRole(role);
-        setUser(userForRole(role));
-      },
-      logout: () => {
-        clearDemoRole();
-        setUser(null);
-      },
-    }),
-    [user],
+    () => ({ user, loginAs, logout, can: (p) => hasPermission(user?.role, p) }),
+    [user, loginAs, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth(): AuthContextValue {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used inside AuthProvider");
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
+  return ctx;
 }

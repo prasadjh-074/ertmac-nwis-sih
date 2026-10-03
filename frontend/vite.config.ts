@@ -1,5 +1,5 @@
 import path from "node:path";
-import { defineConfig, type UserConfig } from "vite";
+import { defineConfig, loadEnv, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { visualEdits } from "@emergentbase/visual-edits/vite";
@@ -41,7 +41,8 @@ if (!hotReloadDisabled) {
 }
 
 // https://vite.dev/config/
-export default defineConfig(async () => {
+export default defineConfig(async ({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
   const emergentOverlay = await loadEmergentOverlay();
   return {
     plugins: [
@@ -113,8 +114,10 @@ export default defineConfig(async () => {
       // prefix so the browser hits e.g. /api/wells → http://127.0.0.1:8000/wells.
       proxy: {
         "/api": {
-          target: process.env.VITE_API_PROXY_TARGET || "http://127.0.0.1:8000",
+          target: env.VITE_API_PROXY_TARGET || "http://127.0.0.1:8000",
           changeOrigin: true,
+          timeout: 120000,
+          proxyTimeout: 120000,
           rewrite: (p) => p.replace(/^\/api/, ""),
         },
       },

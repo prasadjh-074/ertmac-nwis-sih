@@ -8,10 +8,12 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc -b --noEmit",
+    "start": "vite"
   },
   "dependencies": {
     "@base-ui/react": "1.6.0",
+    "@fontsource-variable/archivo": "^5.3.0",
     "@fontsource-variable/dm-sans": "5.3.0",
     "@fontsource-variable/geist": "5.3.0",
     "@fontsource-variable/geist-mono": "5.3.0",
