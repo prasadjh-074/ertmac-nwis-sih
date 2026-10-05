@@ -2,7 +2,7 @@
 
 Evidence-first offset-well intelligence for drilling engineers: find nearby and geologically similar wells, see what went wrong on them, and get a traceable risk view before the bit gets there.
 
-![Python](https://img.shields.io/badge/Python-3.13-3776AB) ![FastAPI](https://img.shields.io/badge/FastAPI-backend-009688) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-pgvector-336791) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white) ![CSS](https://img.shields.io/badge/CSS-Tailwind_4-06B6D4?logo=tailwindcss&logoColor=white) ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.13-3776AB) ![FastAPI](https://img.shields.io/badge/FastAPI-backend-009688) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-pgvector-336791) ![TypeScript](https://img.shields.io/badge/TypeScript-7-3178C6?logo=typescript&logoColor=white) ![CSS](https://img.shields.io/badge/CSS-Tailwind_4-06B6D4?logo=tailwindcss&logoColor=white) ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 
 ## Live demo
 
