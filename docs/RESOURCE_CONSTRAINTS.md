@@ -24,6 +24,13 @@ The raw files and the normalized depth-row tables (about 2.3 million rows for FO
 - **Caliper evidence missing.** `risk/evidence_sources.py` reads raw files under `data/` for caliper lookups. Without them, hosted risk scores have fewer evidence signals.
 - **Reduced embeddings.** Similarity search uses 30-dimension well and window embeddings (reduced set). Full-dimension and extended Volve embeddings (`data/embeddings/*_extended*`, `*_reduced*`) exist locally for ablation and leakage analysis but are not what the hosted index is built from.
 
+## 2a. Knowledge vault and backend stability
+
+- The Knowledge vault (Documents page) is a semantic search over document chunks with no per-well filter. The only ingested document is the sample report for well `30/6-1` (Equinor, licence PL 123, total depth 2890 m, formation tops including Heimdal and Sleipner). Other wells return nothing relevant.
+- On 2026-10-05, `POST /documents/search` returned 502 and `/health` also returned 502 for the whole service. It recovered by itself after about 40 seconds. A second search attempt earlier in the same check also returned 502 within seconds. Likely cause: the embedding model does not fit in the free instance's memory (unconfirmed; check the Render logs for an out-of-memory message).
+- The `15/9-19 A` events request returned a 500 error. The golden-query docs already list Volve 15/9-19 well IDs as a known limitation.
+- Demo advice: wake the backend with a normal page first, run one document search at a time, and retry after about a minute if a 502 appears.
+
 ## 3. Implemented but held back (not available online)
 
 | Feature | State | Why it is held back |

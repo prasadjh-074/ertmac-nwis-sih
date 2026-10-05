@@ -204,6 +204,14 @@ We built and verified the full system locally against about 2.1 GB of source dat
 - **SODIR data:** designed and validated locally, but not served by the hosted API.
 - **Risk and events:** sparse for many wells because of the limited data loaded, not because of a logic fault.
 - **Free-tier cold starts:** expect a delay on the first request after idle time.
+- **Knowledge vault (Documents page):** it searches document text and has no per-well filter. Only one sample document is loaded, the report for well `30/6-1` (Equinor, licence PL 123, total depth 2890 m, with formation tops such as Heimdal and Sleipner). Search terms from that report return results; other wells return nothing relevant.
+- **Backend crashes under document search:** in our checks, a document search request made the Render service return 502 (bad gateway) on `/health` and every other endpoint. It recovered on its own after roughly 40 seconds. Document search needs the embedding model in memory, so we suspect the free instance runs out of memory, but we have not confirmed this from the service logs.
+
+### Demo tips for the hosted version
+
+- Open the site a few minutes early and use a normal page (map or nearby wells) to wake the backend.
+- On the Documents page, run a single search (for example "Heimdal") and wait for it to finish.
+- If the backend returns 502, wait about a minute and retry.
 
 ### Our commitment
 
