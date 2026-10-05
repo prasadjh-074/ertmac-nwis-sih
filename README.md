@@ -10,6 +10,7 @@ Evidence-first offset-well intelligence for drilling engineers: find nearby and 
 
 - Pick a role on the login screen ("Drilling Engineer" is the main one). The login is a demo role picker, not real authentication.
 - The demo runs on free hosting. If nobody has used it for a while, the backend sleeps, so **the first request can take up to 30 seconds**. Later requests are fast.
+- The hosted demo is a reduced deployment. The ingestion pipeline is not available online, and the database holds only a processed subset of the data. See [Deployment challenges and known limitations](#deployment-challenges-and-known-limitations).
 - API docs (Swagger): https://ertmac-nwis-sih.onrender.com/docs
 
 ## Overview
@@ -31,6 +32,8 @@ eRTMAC-NWIS puts both kinds of data into one PostgreSQL database and makes them 
 ## Key features
 
 ### Ingestion
+> **Availability:** the ingestion pipeline is fully implemented and tested in the codebase, but it is **not available in the hosted demo** because of backend resource constraints (see [Deployment challenges](#deployment-challenges-and-known-limitations)). It runs locally, and we will bring it online as soon as we have adequate server support.
+
 - Loads PDFs, plain text, and scanned images, with Tesseract OCR and PyMuPDF for text extraction.
 - Classifies each page as typed, handwritten, or mixed. It does not transcribe handwriting unless an OCR provider for it is available; otherwise the page is marked as unavailable.
 - Extracts entities and relations with deterministic rules (regex and dictionaries), normalizes names and units, and resolves entities against reference tables.
@@ -43,6 +46,17 @@ eRTMAC-NWIS puts both kinds of data into one PostgreSQL database and makes them 
 - A combined view that shows the distance and similarity scores separately.
 - Drilling events (10 event types) extracted from SODIR wellbore history text, each with severity, depth, formation, and source.
 - Correlation of historical events with the current well by proximity, depth, and formation.
+
+### Frontend workstation
+A role-aware, desktop-first workstation for two roles: Drilling Engineer (operational intelligence) and System Administrator (platform administration, with no operational data).
+- Interactive MapLibre well map showing the current, nearby, and similar wells, with a radius control and a well detail panel.
+- Well search with filters, plus an engineer override for the current depth and formation.
+- Risk matrix, alerts with a "Why this alert" evidence drawer, and a depth-based event timeline.
+- Event correlation with a depth-versus-distance chart and formation search.
+- AI assistant with query history and map highlighting. When the language model is unavailable, it falls back to the deterministic structured query.
+- Document search with page-level provenance.
+- Administrator pages for service health, users and roles, access policies, and security posture.
+- Capabilities that are mocked or unavailable are labelled as such; the interface never invents data.
 
 ### Real-time decision support
 - Evidence-based risk scoring and alerts (mud loss, stuck pipe, kick/overpressure, and others). This is rule-based, not machine learning: the project has only 31 labelled events across 20 wells, too few to train a model. See `docs/risk_intelligence.md`.
@@ -85,7 +99,7 @@ eRTMAC-NWIS puts both kinds of data into one PostgreSQL database and makes them 
               FastAPI  (REST, JSON, request IDs)
                            |
                            v
-        React + Vite frontend (map, panels, evidence drawer)
+        React + Vite frontend (role-aware workstation: map, risk, events, AI, documents, admin)
 ```
 
 The two vector spaces (30-dim well data and 384-dim documents) are stored in separate tables and are never compared or mixed.
@@ -99,7 +113,7 @@ The two vector spaces (30-dim well data and 384-dim documents) are stored in sep
 | Vector search | pgvector, cosine distance |
 | AI / ML | Groq LLM (query interpretation only), LangGraph, sentence-transformers |
 | Document AI | Tesseract OCR, PyMuPDF, custom handwriting classifier |
-| Frontend | React 19, TypeScript, Vite 8, Tailwind CSS 4, TanStack Query, MapLibre GL, Recharts |
+| Frontend | React 19, TypeScript, Vite 8, Tailwind CSS 4, TanStack Query, MapLibre GL, Recharts, Lucide icons |
 | Deployment | Docker, Neon, Render, Vercel |
 
 ## Repository structure
@@ -116,7 +130,7 @@ The two vector spaces (30-dim well data and 384-dim documents) are stored in sep
 ├── evidence/            Evidence fusion, provenance, rationale
 ├── examples/            Small demo scripts
 ├── features/            Feature schema for the well-log windows
-├── frontend/            React + Vite app
+├── frontend/            React + Vite role-aware workstation (src/features, src/hooks, src/auth)
 ├── graph/               LangGraph query workflow
 ├── ingestion/           OCR, NLP, handwriting detection, storage pipeline
 ├── llm/                 Groq interpreter: question -> structured query
@@ -169,6 +183,33 @@ The hosted demo uses three free-tier services.
 - **Frontend — Vercel.** Vite build from the `frontend/` directory. `frontend/vercel.json` rewrites `/api/*` to the Render backend, so the browser only talks to one origin and no CORS setup is needed.
 
 Source data is the public FORCE 2020 well-log dataset from Norway (plus Volve and SODIR data, see Data).
+
+## Deployment challenges and known limitations
+
+We built and verified the full system locally against about 2.1 GB of source data. Deploying it on free-tier infrastructure forced us to cut what we could host. This section is an honest account of what that means for the live demo.
+
+### What we faced
+
+| Challenge | Detail |
+|---|---|
+| Limited database | Only a processed `pg_dump` of about 48 MB was pushed to Neon. The raw data (about 2.1 GB, including roughly 2.3 million FORCE 2020 depth rows and the SODIR source files) was not hosted. |
+| Backend lag | The free Render service sleeps when idle. The first request can take 30 seconds or more, and some heavier calls (document search, event queries, natural-language `/query`) exceeded 100 seconds or timed out in our checks. |
+| Reduced coverage online | The hosted API lists 113 FORCE 2020 wells and 12 Volve wells, and no SODIR wells. Several wells return few or no extracted events, so risk output there is based on limited evidence and carries lower confidence. |
+| Heavy workloads | OCR, embedding generation, and large vector searches need more memory and compute than the free tier gives. |
+
+### What is affected in the live demo
+
+- **Ingestion pipeline: unavailable online.** OCR, handwriting classification, entity extraction, and document embedding are implemented but cannot run within the current backend limits. Only one sample document is ingested, so document search is minimal and slow.
+- **Natural-language queries (`/query`):** slow or timing out. The hosted server also has no working Groq key. The deterministic `/query/structured` endpoint works and is used as the fallback.
+- **SODIR data:** designed and validated locally, but not served by the hosted API.
+- **Risk and events:** sparse for many wells because of the limited data loaded, not because of a logic fault.
+- **Free-tier cold starts:** expect a delay on the first request after idle time.
+
+### Our commitment
+
+The ingestion pipeline works locally, and we will deploy it properly once we have server support: a larger database, an always-on backend with more memory, and a background worker for OCR and ingestion. With that support we would also load the full datasets, restore SODIR coverage, and enable the natural-language assistant. Until then, the full system can be run locally by following the setup steps below.
+
+More detail: [docs/RESOURCE_CONSTRAINTS.md](docs/RESOURCE_CONSTRAINTS.md).
 
 ## Getting started (local development)
 
@@ -231,6 +272,12 @@ Options: `--source pdf|text|image` to override type detection.
 ```bash
 pytest
 ```
+**Test results: 575 tests run, 575 passed, 0 failed** (Python 3.13, full local suite, about 2 min 40 s). The suite has 25 test files covering risk scoring, handwriting detection, drilling events, evidence and explainability, nearby wells, the REST API, the query contract and graph, the resolver, the Groq interpreter, document and vector retrieval, and every stage of the ingestion pipeline.
+
+In addition, the golden-query evaluation set (29 queries) passed 29 of 29 in structured mode.
+
+The frontend has no automated unit tests. It was checked by end-to-end flow testing of the main user journeys.
+
 Tests marked `live` (need a real Groq key), `integration` (need a real database), and `slow` are opt-in. See `pytest.ini`.
 
 ## Configuration
@@ -262,16 +309,17 @@ For local development you do not need the raw files. The database dump already c
 ## Roadmap / status
 
 Done:
-- Ingestion pipeline with OCR and handwriting classification
+- Ingestion pipeline with OCR and handwriting classification (implemented and tested locally; not deployed, see Deployment challenges)
 - Nearby and similar well search
 - Drilling event extraction and correlation
 - Evidence-based risk scoring and alerts
 - LangGraph query workflow with evidence, rationale, and confidence
 - Golden-query evaluation framework (29 queries)
-- REST API and React frontend
+- REST API and role-aware React frontend (v2)
 - Hosted demo (Neon, Render, Vercel)
 
 Planned:
+- Deploy the ingestion pipeline and the full datasets once server support is available
 - Real authentication and authorization (the login is a demo role picker, and the API has no auth layer yet)
 - Handwriting transcription with a real handwriting OCR provider
 - More labelled drilling events, then a trained risk model if the data supports it
@@ -284,11 +332,18 @@ Open a pull request against `main` from a feature branch. Use short, imperative 
 
 ## Team
 
-[Team name and members — to be added]
+| Name |
+|---|
+| Prasad Jagadish Hemadri |
+| Prathigna S |
+| Disha K |
+| Gagana Shri R K |
+| Keerthana G S |
+| Vivek G |
 
 ## License
 
-[To be added]
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
 
 ## Acknowledgments
 
