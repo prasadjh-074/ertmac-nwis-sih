@@ -54,7 +54,7 @@ export default function LoginPage() {
   return (
     <div data-testid="login-page" className="grid min-h-full grid-cols-1 bg-bg lg:grid-cols-[minmax(0,1.35fr)_minmax(420px,1fr)]">
       <section className="gridlines relative hidden flex-col justify-between border-r border-line p-12 lg:flex">
-        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-faint">SIH 2026 · PS 2612 · Oil India Limited</div>
+        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-faint">SIH 2026 · PS 26121 · Oil India Limited</div>
         <div className="rise">
           <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-signal">Drilling intelligence platform</div>
           <h1 className="font-wide mt-3 text-[112px] font-extrabold leading-[0.85] tracking-[-0.01em] text-ink">NWIS</h1>
