@@ -25,7 +25,7 @@ eRTMAC-NWIS puts both kinds of data into one PostgreSQL database and makes them 
 |---|---|
 | Event | Smart India Hackathon (SIH) 2026 |
 | Organization | Oil India Limited (OIL) |
-| Problem Statement | 2612 |
+| Problem Statement | 26121 |
 | Category | Software |
 | Theme | Smart Automation |
 
@@ -348,7 +348,7 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE).
 ## Acknowledgments
 
 - Smart India Hackathon 2026
-- Oil India Limited (OIL), problem statement 2612
+- Oil India Limited (OIL), problem statement 26121
 - FORCE 2020 Machine Learning competition well-log dataset — https://github.com/bolgebrygg/Force-2020-Machine-Learning-competition
 - Equinor Volve data village — https://www.equinor.com/energy/volve-data-sharing
 - SODIR (Norwegian Offshore Directorate) fact pages — https://factpages.sodir.no
