@@ -8,6 +8,8 @@ Evidence-first offset-well intelligence for drilling engineers: find nearby and 
 
 **https://ertmac-nwis-sih.vercel.app**
 
+**Demo video:** [Watch on YouTube](https://youtu.be/EAMXJot8DP0)
+
 - Pick a role on the login screen ("Drilling Engineer" is the main one). The login is a demo role picker, not real authentication.
 - The demo runs on free hosting. If nobody has used it for a while, the backend sleeps, so **the first request can take up to 30 seconds**. Later requests are fast.
 - The hosted demo is a reduced deployment. The ingestion pipeline is not available online, and the database holds only a processed subset of the data. See [Deployment challenges and known limitations](#deployment-challenges-and-known-limitations).
